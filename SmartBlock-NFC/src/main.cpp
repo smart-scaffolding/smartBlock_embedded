@@ -6,6 +6,9 @@
 //PN532 (SPI)
 Adafruit_PN532 nfc(PN532_SS);
 
+//PN532 (I2C)
+// Adafruit_PN532 nfc(PN532_SS);
+
 void setup(void) {
 
     Serial.begin(115200);
@@ -44,7 +47,7 @@ void loop(void) {
 
         boolean success;
         nfc.AsTarget();
-        uint_t messageLength
+        uint_t messageLength;
         success = nfc.getDataTarget(rxMessage, &messageLength); //Read initial APDU
         
         boolean newBlock = true;
