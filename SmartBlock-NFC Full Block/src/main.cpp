@@ -3,42 +3,50 @@
 #include <SPI.h>
 #include <Adafruit_PN532.h>
 
-/* PINS (Teensy3.6 and Arduino UNO/ProMini)
-    * SCL  10
-    * MOSI 11
-    * MISO 12
-    * SCK  13
-*/
-
 //PN532 (SPI)
-Adafruit_PN532 nfc(PN532_SS);
+Adafruit_PN532 X0(X0_SS);
+Adafruit_PN532 X1(X1_SS);
+Adafruit_PN532 Y0(Y0_SS);
+Adafruit_PN532 Y1(Y1_SS);
+Adafruit_PN532 Z0(Z0_SS);
+Adafruit_PN532 Z1(Z1_SS);
+
+// Adafruit_PN532 NFCs[NUM_NFC] = {X0, X1, Y0, Y1, Z0, Z1};
+Adafruit_PN532 NFCs[NUM_NFC] = {X0}; //For testing purposes only
 
 //Function Declatation
-void send();
-void recieve();
+void send(Adafruit_PN532 nfc);
+void sendAll();
+void recieve(Adafruit_PN532 nfc);
+void recieveAll();
 void newNeighbor();
 void newBlock(char message[MAX_MESSAGE_LEN]);
 void checkNeighbor();
 
 void setup(void) {
     Serial.begin(115200);
-    Serial.println("NOT HOMEBLOCK");
+    Serial.println("SMART BLOCK");
 
-    nfc.begin();
+    for (int i=0; i<NUM_NFC; i++) {
+        NFCs[i].begin();
 
-    uint32_t versiondata = nfc.getFirmwareVersion();
-    if (! versiondata) {
-        Serial.print("Didn't find PN53x board");
-        while (1); // halt
+        uint32_t versiondata = NFCs[i].getFirmwareVersion();
+        if (! versiondata) {
+            char print[34]; //buffer to hold message
+            sprintf(print, "Didn't find PN53x board number %d\n", i);
+            Serial.print(print);
+            while (1); // halt
+        }
+
+        // Got ok data, print it out!
+        Serial.print("Found chip PN5"); Serial.println((versiondata>>24) & 0xFF, HEX); 
+        Serial.print("Firmware ver. "); Serial.print((versiondata>>16) & 0xFF, DEC); 
+        Serial.print('.'); Serial.println((versiondata>>8) & 0xFF, DEC);
+
+        // configure board to read RFID tags
+        NFCs[i].SAMConfig();
+        NFCs[i].begin();
     }
-    // Got ok data, print it out!
-    Serial.print("Found chip PN5"); Serial.println((versiondata>>24) & 0xFF, HEX); 
-    Serial.print("Firmware ver. "); Serial.print((versiondata>>16) & 0xFF, DEC); 
-    Serial.print('.'); Serial.println((versiondata>>8) & 0xFF, DEC);
-
-    // configure board to read RFID tags
-    nfc.SAMConfig();
-    nfc.begin();
 
     Serial.println("Waiting for an ISO14443A Card ...");
 }
@@ -47,31 +55,34 @@ int thisX;
 int thisY;
 int thisZ;
 
+//TODO:check neighbor for all 6 sides
 boolean haveNeighbor[5] = {false,false,false,false,false}; //To identify attached neighbor on any side of block (except inital mounting side)
 
 void loop(void) {
     //Ask surounding blocks for this blocks position
-    // nfc.begin();
-    // nfc.SAMConfig();
-    // nfc.begin();
-
-    send();
+    sendAll();
 
     char message[MAX_MESSAGE_LEN];
     for (int i = 0; i < MAX_MESSAGE_LEN; i++) {
         message[i] = NEW_NEIGHBOR_CHAR;
     }
+
     boolean success = false;
+    int faceWithNeighbor;
     while(!success) {
-        if (nfc.inListPassiveTarget()) {
-            uint8_t responseLength = sizeof(message);
-            nfc.inDataExchange(message,sizeof(message),message,&responseLength);
-            success = true;
-        }
+        for (int i=0; i<NUM_NFC; i++) {
+            if (NFCs[i].inListPassiveTarget()) {
+                uint8_t responseLength = sizeof(message);
+                NFCs[i].inDataExchange(message,sizeof(message),message,&responseLength);
+                success = true;
+                faceWithNeighbor = i;
+            }
+            //TODONE pay attention to which face recieved communication
+            //TODO identify if more than one face has communication at the same time
     }
     Serial.println("ASKING FOR MY LOCATION");
     //Recieve this blocks position
-    recieve();
+    recieveAll();
 
     char x_buf[COORDINATE_LEN + 1]; 
     char y_buf[COORDINATE_LEN + 1];
@@ -86,8 +97,8 @@ void loop(void) {
     uint8_t ppse[] = {0x8E, 0x6F, 0x23, 0x84, 0x0E, 0x32, 0x50, 0x41, 0x59, 0x2E, 0x53, 0x59, 0x53, 0x2E, 0x44, 0x44, 0x46, 0x30, 0x31, 0xA5, 0x11, 0xBF, 0x0C, 0x0E, 0x61, 0x0C, 0x4F, 0x07, 0xA0, 0x00, 0x00, 0x00, 0x03, 0x10, 0x10, 0x87, 0x01, 0x01, 0x90, 0x00};
     delay(1000);
     while (apdulen == 0) {
-        nfc.AsTarget();
-        success = nfc.getDataTarget(apdubuffer, &apdulen); //Read initial APDU
+        NFCs[faceWithNeighbor].AsTarget();
+        success = NFCs[faceWithNeighbor].getDataTarget(apdubuffer, &apdulen); //Read initial APDU
         if (apdulen>0){
             // Serial.println(apdulen);
             for (uint8_t i = 0; i < apdulen; i++){
@@ -110,12 +121,13 @@ void loop(void) {
             Serial.print(" Z: ");
             Serial.print(thisZ);
             Serial.println("");
+            //TODO: Use sprintf above
         }
         delay(1000);
     }
     Serial.println("END RECIEVE");
 
-    //New block message passing
+    //New block message passing (Pass message of new block to homeblock through the other blocks)
     recieve();
     int checkNeighborCount = 0;
     int checkAt = 10;
@@ -125,16 +137,12 @@ void loop(void) {
             for (int i = 0; i < 5; i++) {
                 if (haveNeighbor[i]) {
                     Serial.println("Checking Neighbor");
-                    checkNeighbor();
-                }
-            }
-            checkNeighborCount = 0;
-        }
+                    checkNeighbor(); 
         checkNeighborCount++;
 
         boolean success;
         char _apdubuffer[255] = {};
-        uint8_t _apdulen = 0; //TODO: Put this back to 0
+        uint8_t _apdulen = 0;
         uint8_t ppse[] = {0x8E, 0x6F, 0x23, 0x84, 0x0E, 0x32, 0x50, 0x41, 0x59, 0x2E, 0x53, 0x59, 0x53, 0x2E, 0x44, 0x44, 0x46, 0x30, 0x31, 0xA5, 0x11, 0xBF, 0x0C, 0x0E, 0x61, 0x0C, 0x4F, 0x07, 0xA0, 0x00, 0x00, 0x00, 0x03, 0x10, 0x10, 0x87, 0x01, 0x01, 0x90, 0x00};
         nfc.AsTarget();
         success = nfc.getDataTarget(_apdubuffer, &_apdulen); //Read initial APDU
@@ -178,25 +186,50 @@ void loop(void) {
 
     } 
 }
-void send() {
+
+/*
+Prepares NFC module to send data 
+*/
+void send(Adafruit_PN532 nfc) {
     nfc.begin();
     nfc.SAMConfig();
     nfc.begin();
     return;
 }
-void recieve() {
+/*
+Prepares all of the NFC modules to send data 
+*/
+void sendAll() {
+    for (int i=0; i<NUM_NFC; i++) {
+        NFCs[i].begin();
+        NFCs[i].SAMConfig();
+        NFCs[i].begin();
+    }
+    return;
+}
+/*
+Prepares NFC module to recieve data 
+*/
+void recieve(Adafruit_PN532 nfc) {
     nfc.begin();
     nfc.SAMConfig();
     return;
 }
 /*
-Function called to send nnew neighbor their location in the structure
+Prepares all the NFC modules to recieve data 
+*/
+void recieve(Adafruit_PN532 nfc) {
+    for (int i=0; i<NUM_NFC; i++) {
+        NFCs[i].begin();
+        NFCs[i].SAMConfig();
+    }
+    return;
+}
+/*
+Function called to send new neighbor their location in the structure
 Currently only increments X direction, but if in 3D structure X, Y, or Z should be incremented based off the new neighbor's relative postiion
 */
 void newNeighbor() {
-    // nfc.begin();
-    // nfc.SAMConfig();
-    // nfc.begin();
     send();
 
     haveNeighbor[0] = true;
