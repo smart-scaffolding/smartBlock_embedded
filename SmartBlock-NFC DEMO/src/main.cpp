@@ -1,7 +1,7 @@
 #include "main.h"
 #include <Wire.h>
 #include <SPI.h>
-#include <Adafruit_PN532.h>
+#include <Adafruit_PN532_EDITED.h>
 
 /* PINS (Teensy3.6 and Arduino UNO/ProMini)
     * SCL  10
