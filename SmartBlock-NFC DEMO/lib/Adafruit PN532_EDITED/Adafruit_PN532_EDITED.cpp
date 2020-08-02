@@ -1861,13 +1861,13 @@ void Adafruit_PN532::spi_write(uint8_t c) {
   else {
     // Software SPI write.
     //edit
-    u_int8_t cyclePeriod = 1 / SOFTWARE_SPI_CLK_SPEED;
-    u_int8_t timeHIGHLOW = cyclePeriod / 2;
+    u_int8_t cyclePeriod = 1 / SOFTWARE_SPI_CLK_SPEED * 1000000; //Find period and convert to miliseconds
+    u_int8_t timeHIGHLOW = cyclePeriod / 2; //Divided by two to get time high/time low
 
     int8_t i;
     digitalWrite(_clk, HIGH);
     
-    delay(timeHIGHLOW);
+    delayMicroseconds(timeHIGHLOW);
 
     for (i=0; i<8; i++) {
       digitalWrite(_clk, LOW);
@@ -1876,9 +1876,9 @@ void Adafruit_PN532::spi_write(uint8_t c) {
       } else {
         digitalWrite(_mosi, LOW);
       }
-      delay(timeHIGHLOW);
+      delayMicroseconds(timeHIGHLOW);
       digitalWrite(_clk, HIGH);
-      delay(timeHIGHLOW);
+      delayMicroseconds(timeHIGHLOW);
     }
   }
 }
@@ -1901,12 +1901,12 @@ uint8_t Adafruit_PN532::spi_read(void) {
   else {
     // Software SPI read.
     //edit
-    u_int8_t cyclePeriod = 1 / SOFTWARE_SPI_CLK_SPEED;
-    u_int8_t timeHIGHLOW = cyclePeriod / 2;
+    u_int8_t cyclePeriod = 1 / SOFTWARE_SPI_CLK_SPEED * 1000000; //Find period and convert to miliseconds
+    u_int8_t timeHIGHLOW = cyclePeriod / 2; //Divided by two to get time high/time low
 
     digitalWrite(_clk, HIGH);
 
-    delay(timeHIGHLOW);
+    delayMicroseconds(timeHIGHLOW);
 
     for (i=0; i<8; i++) {
       if (digitalRead(_miso)) {
@@ -1915,11 +1915,11 @@ uint8_t Adafruit_PN532::spi_read(void) {
 
       digitalWrite(_clk, LOW);
 
-      delay(timeHIGHLOW);
+      delayMicroseconds(timeHIGHLOW);
 
       digitalWrite(_clk, HIGH);
 
-      delay(timeHIGHLOW);
+      delayMicroseconds(timeHIGHLOW);
     }
   }
 
