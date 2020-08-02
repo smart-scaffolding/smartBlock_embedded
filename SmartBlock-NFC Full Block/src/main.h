@@ -1,6 +1,7 @@
 // #define NUM_NFC 6 //Number of PN532 chips
 #define NUM_NFC 1
 
+
 //Pins
 #define X0_SS (10) //PN532 chip select
 #define X1_SS (9) //PN532 chip select
@@ -8,6 +9,11 @@
 #define Y1_SS (7) //PN532 chip select
 #define Z0_SS (6) //PN532 chip select
 #define Z1_SS (5) //PN532 chip select
+
+//LEDs
+#define NUM_LEDS 24
+#define NUM_LEDS_PER_FACE 4
+#define LED_PIN 9 
 
 //Block States
 #define RX 0

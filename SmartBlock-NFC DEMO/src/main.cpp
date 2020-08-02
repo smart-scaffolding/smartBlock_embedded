@@ -9,9 +9,17 @@
     * MISO 12
     * SCK  13
 */
+#define SCL  10
+#define MOSI 11
+#define MISO 12
+#define SCK 13
+
 
 //PN532 (SPI)
-Adafruit_PN532 nfc(PN532_SS);
+// Adafruit_PN532 nfc(PN532_SS);
+
+//PN532 (Software SPI)
+Adafruit_PN532 nfc(SCK, MISO, MOSI, SCL);
 
 //Function Declatation
 void send();
