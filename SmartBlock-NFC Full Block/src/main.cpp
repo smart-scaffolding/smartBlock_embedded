@@ -1,4 +1,5 @@
 #include "main.h"
+#include "colors.h"
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_PN532.h>
@@ -12,8 +13,17 @@ Adafruit_PN532 Y1(Y1_SS);
 Adafruit_PN532 Z0(Z0_SS);
 Adafruit_PN532 Z1(Z1_SS);
 
-// Adafruit_PN532 NFCs[NUM_NFC] = {X0, X1, Y0, Y1, Z0, Z1};
-Adafruit_PN532 NFCs[NUM_NFC] = {X0}; //For testing purposes only
+Adafruit_PN532 NFCs[NUM_NFC] = {X0, X1, Y0, Y1, Z0, Z1}; // X0 is oposite X1 and so one, Z0 is the bottom (Male) face, Z1 is the top (Allen key) face
+// Adafruit_PN532 NFCs[NUM_NFC] = {X0}; //For testing purposes only
+
+//TODONE:check neighbor for all 6 sides
+boolean haveNeighbor[NUM_NFC] = {false,false,false,false,false,false}; //To identify attached neighbor on any side of block (except inital mounting side)
+int neighborCoord[NUM_NFC][3];
+// boolean haveNeighbor[NUM_NFC] = {false}; //For testing purposes only
+
+//Arrays to keep track of orientation
+int8_t increaseAxis[NUM_NFC] = {-1,-1,-1,-1,2,2}; //Can be 0,1,or2 to represent X,Y,or Z
+int8_t increaseSign[NUM_NFC] = {0,0,0,0,-1,1}; //Can be -1 or 1
 
 //Define LEDs
 CRGB leds[NUM_LEDS];
@@ -25,14 +35,16 @@ void sendAll();
 void recieve(uint8_t i);
 void recieveAll();
 void newNeighbor(uint8_t i);
-void newBlock(char message[MAX_MESSAGE_LEN]);
-void checkNeighbor(uint8_t i);
+void passMessage(char message[MAX_MESSAGE_LEN], uint8_t recievingFace);
+boolean checkNeighbor(uint8_t i);
+void colorMessage(uint8_t i);
+void localize(uint8_t i);
 //LED Functions
 void setBlockColor(uint8_t R,uint8_t G, uint8_t B);
 void setFaceColor(uint8_t face, uint8_t R,uint8_t G, uint8_t B);
 
 void setup(void) {
-    Serial.begin(9600);
+    Serial.begin(115200);
     Serial.println("SMART BLOCK");
 
     for (uint8_t i=0; i<NUM_NFC; i++) {
@@ -57,9 +69,8 @@ void setup(void) {
     }
 
     //Config LEDs
-    // FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS);  // GRB ordering is typical
     FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, NUM_LEDS);  // GRB ordering is typical
-    setBlockColor(0, 180, 0);
+    setBlockColor(GREEN); //make block green
 
     /*
     // Testing purposes only
@@ -77,17 +88,13 @@ void setup(void) {
     Serial.println("Waiting to be added to structure ...");
 }
 
+//Variables to holds this block's coordinates
 uint8_t thisX;
 uint8_t thisY;
 uint8_t thisZ;
 
-//TODONE:check neighbor for all 6 sides
-// boolean haveNeighbor[NUM_NFC] = {false,false,false,false,false,false}; //To identify attached neighbor on any side of block (except inital mounting side)
-boolean haveNeighbor[NUM_NFC] = {false}; //To identify attached neighbor on any side of block (except inital mounting side)
-
-
 void loop(void) {
-    //Ask surounding blocks for this blocks position
+    //////// Ask surounding blocks for this block's position ////////
     sendAll();
 
     char message[MAX_MESSAGE_LEN];
@@ -95,6 +102,7 @@ void loop(void) {
         message[i] = NEW_NEIGHBOR_CHAR;
     }
 
+    //Try to find neighboring block
     boolean success = false;
     uint8_t faceWithNeighbor;
     while(!success) {
@@ -111,15 +119,12 @@ void loop(void) {
         }
     }
     Serial.println("ASKING FOR MY LOCATION");
-    //Recieve this blocks position
-    recieveAll();
 
-    char x_buf[COORDINATE_LEN + 1]; 
-    char y_buf[COORDINATE_LEN + 1];
-    char z_buf[COORDINATE_LEN + 1];
-    x_buf[COORDINATE_LEN] = '\n';
-    y_buf[COORDINATE_LEN] = '\n';
-    z_buf[COORDINATE_LEN] = '\n';
+    // Recieve this blocks position from the indetified neighbor
+    recieveAll();
+    
+    //Buffers to hold each coordinat string
+    char coord_buf[COORDINATE_LEN + 1];
 
     success = false;
     char apdubuffer[255] = {};
@@ -130,31 +135,107 @@ void loop(void) {
         NFCs[faceWithNeighbor].AsTarget();
         success = NFCs[faceWithNeighbor].getDataTarget(apdubuffer, &apdulen); //Read initial APDU
         if (apdulen>0){
-            // Serial.println(apdulen);
+            uint8_t j = 0;
+            uint8_t k = 0;
             for (uint8_t i = 0; i < apdulen; i++){
                 char digit = apdubuffer[i];
-                // Serial.print(digit);
                 //Put recieved coordinate into char buffer
-                if (i < COORDINATE_LEN) { x_buf[i] = digit; }
-                else if (i > COORDINATE_LEN && i < (2* COORDINATE_LEN)+1) { y_buf[i - (COORDINATE_LEN + 1)] = digit; }
-                else if (i > 2* COORDINATE_LEN + 1 && i < (3* COORDINATE_LEN)+2) { z_buf[i - (2* COORDINATE_LEN + 2)] = digit; }
+                if (digit != ',') {
+                    coord_buf[j] = digit;
+                    j++;
+                }
+                else {
+                    coord_buf[j] = '\n'; //null terminator for atoi()
+                    //assign value to appropriate coordinate
+                    switch (k) {
+                        case 0:
+                            thisX = atoi(coord_buf);
+                        case 1:
+                            thisY = atoi(coord_buf);
+                        case 2:
+                            thisZ = atoi(coord_buf);
+                        default:
+                            digit = digit //Do nothing
+                    }
+                    j=0; 
+                    k++;
+                }
             }
-            //Asign this block's position (Convert char burrers to uint_8s)
-            char thisLocation[MAX_MESSAGE_LEN];
-            thisX = atoi(x_buf);
-            thisY = atoi(y_buf);
-            thisZ = atoi(z_buf);
-            Serial.print("X: ");
-            Serial.print(thisX);
-            Serial.print(" Y: ");
-            Serial.print(thisY);
-            Serial.print(" Z: ");
-            Serial.print(thisZ);
-            Serial.println("");
-            //TODO: Use sprintf above
+            char buffer[MAX_MESSAGE_LEN + 12];
+            sprintf(buffer, "X: %d Y: %d Z: %d\n", thisX, thisY, thisZ);
+            Serial.println(buffer);
+        }
+        delay(1000);
+
+    }
+
+    // Recieve this block's orientation from the indetified neighbor
+    recieveAll();
+
+    success = false;
+    char apdubufer[255] = {};
+    apdulen = 0;
+    delay(1000);
+    while (apdulen == 0) {
+        NFCs[faceWithNeighbor].AsTarget();
+        success = NFCs[faceWithNeighbor].getDataTarget(apdubufer, &apdulen); //Read initial APDU
+        if (apdulen>0 && faceWithNeighbor < 5){ //orientation cannot be determined for faces added in Z direction
+            //set orientation of face with neighbor
+            increaseAxis[faceWithNeighbor] = apdubufer[0]; // Can be 0,1,or 2 to represent X,Y,or Z
+            increaseSign[faceWithNeighbor] = apdubufer[1]; //-1 or 1 to represent axis direction
+
+            //Set orientation of oposite face
+            if (faceWithNeighbor % 2 == 0) {
+                increaseAxis[faceWithNeighbor+1] = apdubufer[0];
+                increaseSign[faceWithNeighbor+1] = apdubufer[1];
+            }
+            else {
+                increaseAxis[faceWithNeighbor-1] = apdubufer[0];
+                increaseSign[faceWithNeighbor-1] = -1*apdubufer[1];
+            }
+            //Set orintation of perpendicular faces
+            uint8_t dim;
+            if (apdubufer[0] == 0) { dim = 1; }
+            else { dim = 0; }
+
+            if (faceWithNeighbor <= 1) { //set for Y0,Y1
+                increaseAxis[2] = dim;
+                increaseAxis[3] = dim;
+            }
+            else if (faceWithNeighbor <= 3) { //set for X0,X1
+                increaseAxis[0] = dim;
+                increaseAxis[1] = dim;
+            }
+            //Set increase direction (-1 or 1) for oposite face
+
+            if (apdubufer[0] == 0) { // if face with neighbor is on X axis
+                // Determine Y0 and Y1 direction from X0 and X1 direction
+                if (faceWithNeighbor <= 1) {
+                    increaseSign[2] = increaseSign[0];
+                    increaseSign[3] = increaseSign[1];
+                }
+                // Determine X0 and X1 direction from Y0 and Y1 direction
+                else if (faceWithNeighbor <= 3) {
+                    increaseSign[0] = increaseSign[3];
+                    increaseSign[1] = increaseSign[2];
+                }
+            }
+            else if (apdubufer[0] == 1) { // if face with neighbor is on Y axis
+                // Determine X0 and X1 direction from X0 direction
+                if (faceWithNeighbor <= 1) {
+                    increaseSign[2] = increaseSign[1];
+                    increaseSign[3] = increaseSign[0];
+                }
+                else if (faceWithNeighbor <= 3) {
+                    // Determine X0 and X1 direction from Y0 and Y1 direction
+                    increaseSign[0] = increaseSign[2];
+                    increaseSign[1] = increaseSign[3];
+                }
+            }
         }
         delay(1000);
     }
+
     Serial.println("END RECIEVE");
 
     //Message recieving/passing mode(Pass message of new block to homeblock through the other blocks)
@@ -167,7 +248,15 @@ void loop(void) {
             for (uint8_t i = 0; i < NUM_NFC; i++) {
                 if (haveNeighbor[i]) {
                     Serial.println("Checking Neighbor");
-                    checkNeighbor(i);
+                    if (!checkNeighbor(i)) {
+                        setBlockColor(RED);
+
+                        char locationMessage[MAX_MESSAGE_LEN];
+                        sprintf(locationMessage, "%d,%d,%d,", neighborCoord[i][0], neighborCoord[i][1], neighborCoord[i][3]);//TODO: FINISH THIS
+                        // passMessage();
+                        //TODO: send message of missing neighbor
+                    }
+                    
                 }
             }
         }
@@ -184,13 +273,21 @@ void loop(void) {
             if (_apdulen>0){
                 bool _newNeighbor = true;
                 bool _check = true;
-                // Serial.println(_apdulen);
+                bool _color = true;
+                bool _localize = true;
+                // TODO: Check for messages that were already recieved
                 for (uint8_t j = 0; j < _apdulen; j++){
-                    if (_apdubuffer[j] != NEW_NEIGHBOR_CHAR) { //Example new neighbor message {'?',',','?',',','?',','}
+                    if (_apdubuffer[j] != NEW_NEIGHBOR_CHAR) { //Example new neighbor message {'?','?','?','?'}
                         _newNeighbor = false;
                     }
                     if (_apdubuffer[j] != CHECK_NEIGHBOR_CHAR) {
                         _check = false;
+                    }
+                    if (_apdubuffer[j] != CHANGE_COLOR_CHAR) {
+                        _color = false;
+                    }
+                    if (_apdubuffer[j] != LOCALIZE_CHAR) {
+                        _localize = false;
                     }
                 }
                 //New Neighboring block
@@ -200,13 +297,23 @@ void loop(void) {
                 }
                 //Neighbor checking this block
                 else if (_check) {
-                    Serial.print("BEING CHECKED BY NEIGHBOR");
+                    Serial.println("BEING CHECKED BY NEIGHBOR");
                     _check = _check; //Do nothing
                 }
-                //New (non-neighboring) block added somewhere else in structure
+                //Robot changing color of this block
+                else if (_color) {
+                    Serial.println("BLOCK COLOR BEING CHANGED BY ROBOT");
+                    colorMessage(i);
+                }
+                //Localize Robot
+                else if (_localize) {
+                    Serial.println("LOCALIZING ROBOT");
+                    localize(i);
+                }
+                //New (non-neighboring) block added somewhere else in structure (MESSAGE PASSING)
                 else {
                     Serial.println("NEW BLOCK");
-                    newBlock(_apdubuffer);
+                    passMessage(_apdubuffer, i);
                     //Print new block coordinates
                     for (uint8_t j = 0; j < _apdulen; j++){
                         Serial.print(_apdubuffer[j]);
@@ -261,6 +368,7 @@ void recieveAll() {
 /*
 Function called to send new neighbor their location in the structure
 Currently only increments X direction, but if in 3D structure X, Y, or Z should be incremented based off the new neighbor's relative postiion
+Param i: index of face with new neighbor
 */
 void newNeighbor(uint8_t i) {
     send(i);
@@ -268,14 +376,19 @@ void newNeighbor(uint8_t i) {
     haveNeighbor[i] = true;
 
     //Send New Neighbor it's coordinates
-    uint8_t increase[3] = {0,0,0};
+    uint8_t increase[3] = {0,0,0}; 
+    increase[increaseAxis[i]] = increaseSign[i]; //choose which axis will increase based on which face has neighbor
 
+    int newCoord[3] = {thisX+increase[0], thisY+increase[1], thisZ+increase[2]}; //calulate new neighbor's coordinates
+
+    // Add new neighboors coordinate to list of neighbor coordinates
+    for (int j=0; j<3; j++) {
+        neighborCoord[i][j] = newCoord[j];
+    }
      
-    //TODO: How to know if new neighbor is an increase or decrease
-    
-
+    //TODONE: send orientation
     char message[MAX_MESSAGE_LEN];
-    sprintf(message, "%d,%d,%d,", thisX+increase[0], thisY+increase[1], thisZ+increase[2]);
+    sprintf(message, "%d,%d,%d,", newCoord[0], newCoord[1], newCoord[2]);
     boolean success = false;
     while(!success) {
         if (NFCs[i].inListPassiveTarget()) {
@@ -284,43 +397,54 @@ void newNeighbor(uint8_t i) {
             success = true;
         }
     }
-    Serial.println("NEIGHBOR ADDED");
     delay(1000);
-
-    //Send message of new block towards homeblock
-    //TODO: Send to all neighbors except new neighbor
+    
     send(i);
+
+    char orient_message[2];
+    sprintf(orient_message, "%d%d", increaseAxis[i], -1*increaseSign[i]); //send message of axis and sign
+    //Sign of neighboring face will be opposite because the faces are oreinted in oposite directions along the same axis 
     success = false;
     while(!success) {
         if (NFCs[i].inListPassiveTarget()) {
-            uint8_t responseLength = MAX_MESSAGE_LEN;
-            Serial.println(responseLength);
-            NFCs[i].inDataExchange(message,MAX_MESSAGE_LEN,message,&responseLength);
+            uint8_t responseLength = sizeof(orient_message);
+            NFCs[i].inDataExchange(orient_message,sizeof(orient_message),orient_message,&responseLength);
             success = true;
         }
     }
-    recieve(i);
 
+    Serial.println("NEIGHBOR ADDED");
+    //Send message of new block towards homeblock
+    //TODONE: Send to all neighbors except new neighbor 
+    //USE passMessage()
+
+    passMessage(message, i); //send message of new block to all other faces
+
+    recieveAll();
     return;
 }
 
-void newBlock(char message[MAX_MESSAGE_LEN]){
-     //Ask surounding blocks for this blocks position
-    // nfc.begin();
-    // nfc.SAMConfig();
-    // nfc.begin();
+/*
+* Passes message to neighboring blocks
+*/
+void passMessage(char message[MAX_MESSAGE_LEN], uint8_t recievingFace){
     sendAll();
 
-    //TODO: Uncomment and make for all block except one with new neighbor
-    boolean success = false;
-    // while(!success) {
-    //     if (nfc.inListPassiveTarget()) {
-    //         uint8_t responseLength = MAX_MESSAGE_LEN;
-    //         Serial.println(responseLength);
-    //         nfc.inDataExchange(message,MAX_MESSAGE_LEN,message,&responseLength);
-    //         success = true;
-    //     }
-    // }
+    for (int i = 0; i < NUM_NFC; i++) {
+        // Relay message if face is not the one that recieved the message and the face has a neighboring block
+        if (i != recievingFace && haveNeighbor[i]){
+            boolean success = false;
+            while(!success) {
+                if (NFCs[i].inListPassiveTarget()) {
+                    uint8_t responseLength = MAX_MESSAGE_LEN;
+                    Serial.println(responseLength);
+                    NFCs[i].inDataExchange(message,MAX_MESSAGE_LEN,message,&responseLength);
+                    success = true;
+                }
+            }
+        }
+    }
+    
     recieveAll();
     return;
 }
@@ -328,8 +452,9 @@ void newBlock(char message[MAX_MESSAGE_LEN]){
 /*
 * Verifies that neighbor is still there
 * Does not wait for message response because sucess is only true if the neighboring block recieved the message 
+* Returns true if neighbor is found
 */
-void checkNeighbor(uint8_t i) {
+boolean checkNeighbor(uint8_t i) {
     send(i);
 
     char message[MAX_MESSAGE_LEN];
@@ -348,10 +473,86 @@ void checkNeighbor(uint8_t i) {
         }
         checks++;
     }
+    recieve(i);
     if (!success && checks == maxChecks) {
         Serial.println("NEIGHBOR MISSING");
+        return false;
     }
-    recieve(i);
+    return true;
+}
+
+/*
+* Recieve change color message
+*/
+void colorMessage(uint8_t i) {
+    boolean success = false;
+    char apdubuffer[255] = {};
+    uint8_t apdulen = 0;
+    uint8_t ppse[] = {0x8E, 0x6F, 0x23, 0x84, 0x0E, 0x32, 0x50, 0x41, 0x59, 0x2E, 0x53, 0x59, 0x53, 0x2E, 0x44, 0x44, 0x46, 0x30, 0x31, 0xA5, 0x11, 0xBF, 0x0C, 0x0E, 0x61, 0x0C, 0x4F, 0x07, 0xA0, 0x00, 0x00, 0x00, 0x03, 0x10, 0x10, 0x87, 0x01, 0x01, 0x90, 0x00};
+    
+    char color_buf[COORDINATE_LEN + 1];
+    uint8_t R;
+    uint8_t G;
+    uint8_t B;
+
+    while (apdulen == 0) {
+        NFCs[i].AsTarget();
+        success = NFCs[i].getDataTarget(apdubuffer, &apdulen); //Read initial APDU
+        if (apdulen>0){
+            uint8_t j = 0;
+            uint8_t k = 0;
+            for (uint8_t i = 0; i < apdulen; i++){
+                char digit = apdubuffer[i];
+                //Put recieved color into char buffer
+                if (digit != ',') {
+                    color_buf[j] = digit;
+                    j++;
+                }
+                else {
+                    color_buf[j] = '\n'; //null terminator for atoi()
+                    //assign value to appropriate coordinate
+                    switch (k) {
+                        case 0:
+                            R = atoi(color_buf);
+                        case 1:
+                            G = atoi(color_buf);
+                        default:
+                            B = atoi(color_buf);
+                    }
+                    j=0; 
+                    k++;
+                }
+                
+            }
+            // char buffer[MAX_MESSAGE_LEN + 12];
+            // sprintf(buffer, "X: %d Y: %d Z: %d\n", R, G, B);
+        }
+    }
+
+    setBlockColor(R, G, B);
+}
+
+/*
+* Function to localize robot
+*/
+void localize(uint8_t i) {
+    char message[MAX_MESSAGE_LEN];
+    sprintf(message, "%d,%d,%d,", thisX, thisY, thisZ);
+
+    sendAll();
+
+    // Relay message if face is not the one that recieved the message and the face has a neighboring block
+    boolean success = false;
+    while(!success) {
+        if (NFCs[i].inListPassiveTarget()) {
+            uint8_t responseLength = MAX_MESSAGE_LEN;
+            Serial.println(responseLength);
+            NFCs[i].inDataExchange(message,MAX_MESSAGE_LEN,message,&responseLength);
+            success = true;
+        }
+    }
+    
+    recieveAll();
     return;
 }
 

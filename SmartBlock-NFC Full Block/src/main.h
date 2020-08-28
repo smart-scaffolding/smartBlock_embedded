@@ -1,5 +1,5 @@
-// #define NUM_NFC 6 //Number of PN532 chips
-#define NUM_NFC 1
+#define NUM_NFC 6 //Number of PN532 chips
+// #define NUM_NFC 1 //For testing purposes only
 
 
 //Pins
@@ -25,4 +25,5 @@
 
 #define NEW_NEIGHBOR_CHAR '?'
 #define CHECK_NEIGHBOR_CHAR '*'
-// #define CHECK_RESPONSE_CHAR "$"
+#define CHANGE_COLOR_CHAR '$'
+#define LOCALIZE_CHAR '@'
