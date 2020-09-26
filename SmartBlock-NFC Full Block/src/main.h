@@ -13,7 +13,7 @@
 //LEDs
 #define NUM_LEDS 24
 #define NUM_LEDS_PER_FACE 4
-#define LED_PIN 9 
+#define LED_PIN 4 
 
 //Block States
 #define RX 0

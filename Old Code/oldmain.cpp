@@ -1,9 +1,10 @@
-#include "main.h"
-#include "colors.h"
-#include <Wire.h>
-#include <SPI.h>
-#include <Adafruit_PN532.h>
-#include <FastLED.h>
+// #include "oldmain.h"
+// #include "colors.h"
+// #include "smartblock.h"
+// #include <Wire.h>
+// #include <SPI.h>
+// #include <Adafruit_PN532.h>
+// #include <FastLED.h>
 
 //PN532 (SPI)
 Adafruit_PN532 X0(X0_SS);
@@ -29,8 +30,7 @@ int8_t increaseSign[NUM_NFC] = {0,0,0,0,-1,1}; //Can be -1 or 1
 CRGB leds[NUM_LEDS];
 
 //Function Declatations
-//NFC 
-
+//NFC funuctions
 void send(uint8_t i);
 void sendAll();
 void recieve(uint8_t i);
@@ -46,7 +46,7 @@ void neighborMoving(int faceWithNeighbor);
 void setBlockColor(uint8_t R,uint8_t G, uint8_t B);
 void setFaceColor(uint8_t face, uint8_t R,uint8_t G, uint8_t B);
 
-void setup(void) {
+void oldsetup(void) {
     Serial.begin(115200);
     Serial.println("SMART BLOCK");
 
@@ -58,7 +58,7 @@ void setup(void) {
             char print[34]; //buffer to hold message
             sprintf(print, "Didn't find PN53x board number %d\n", i);
             Serial.print(print);
-            // while (1); // halt
+            while (1); // halt
         }
 
         // Got ok data, print it out!
@@ -69,7 +69,6 @@ void setup(void) {
         // configure board to read RFID tags
         NFCs[i].SAMConfig();
         NFCs[i].begin();
-        delay(1000);
     }
 
     //Config LEDs
@@ -102,8 +101,7 @@ uint8_t thisR;
 uint8_t thisG;
 uint8_t thisB;
 
-void loop(void) {
-    setBlockColor(ORANGE);
+void oldloop(void) {
     //////// Ask surounding blocks for this block's position ////////
     sendAll();
 
@@ -116,19 +114,8 @@ void loop(void) {
     boolean success = false;
     uint8_t faceWithNeighbor;
     int blinkCount = 0;
-    int blinkThreshold = 1;
+    int blinkThreshold = 5000;
     while(!success) {
-        blinkCount ++;
-        if (blinkCount <= blinkThreshold) {
-            setBlockColor(ORANGE);
-        }
-        else if (blinkCount <= blinkThreshold * 2) {
-            setBlockColor(BLACK);
-        }
-        else {
-            blinkCount = 0;
-        }
-
         for (uint8_t i=0; i<NUM_NFC; i++) {
             if (NFCs[i].inListPassiveTarget()) {
                 uint8_t responseLength = sizeof(message);
@@ -139,6 +126,14 @@ void loop(void) {
             //TODONE pay attention to which face recieved communication
             //TODO identify if more than one face has communication at the same time
             //TODO add all sorounding blocks as neighbors
+        }
+        blinkCount ++;
+        if (blinkCount == blinkThreshold) {
+            setBlockColor(ORANGE);
+        }
+        else if (blinkCount == blinkThreshold * 2) {
+            setBlockColor(BLACK);
+            blinkCount = 0;
         }
     }
 
