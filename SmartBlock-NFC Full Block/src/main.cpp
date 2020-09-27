@@ -56,7 +56,6 @@ uint8_t thisB;
 void loop(void) {
     setBlockColor(ORANGE);
     //////// Ask surounding blocks for this block's position ////////
-    sendAll();
 
     char message[MAX_MESSAGE_LEN];
     for (int i = 0; i < MAX_MESSAGE_LEN; i++) {
@@ -87,7 +86,7 @@ void loop(void) {
             success = true;
         }
     }
-    setBlockColor(ORANGE)
+    setBlockColor(ORANGE);
 }
 
     
