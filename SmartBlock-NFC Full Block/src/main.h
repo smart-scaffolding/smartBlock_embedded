@@ -11,8 +11,8 @@
 #define Z1_SS (5) //PN532 chip select
 
 //LEDs
-#define NUM_LEDS 24
-#define NUM_LEDS_PER_FACE 4
+#define NUM_LEDS 8
+#define NUM_LEDS_PER_FACE 1
 #define LED_PIN 4 
 
 //Block States
