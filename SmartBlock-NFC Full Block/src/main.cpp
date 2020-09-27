@@ -70,6 +70,11 @@ void loop(void) {
     int blinkCount = 0;
     int blinkThreshold = 1;
     while(!success) {
+        if (NFC.inListPassiveTarget()) {
+            setBlockColor(GREEN);
+            while(1);
+        }
+
         blinkCount ++;
         if (blinkCount <= blinkThreshold) {
             setBlockColor(ORANGE);
@@ -80,14 +85,8 @@ void loop(void) {
         else {
             blinkCount = 0;
         }
-        if (NFC.inListPassiveTarget()) {
-            uint8_t responseLength = sizeof(message);
-            NFC.inDataExchange(message,sizeof(message),message,&responseLength);
-            success = true;
-        }
+        delay(1000);
     }
-    setBlockColor(GREEN);
-    while(1);
 }
 
     
