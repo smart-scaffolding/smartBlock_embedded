@@ -111,6 +111,7 @@ void loop(void) {
     while(!beingMoved){
         //Check if neighbor is still there
         if (checkNeighborCount == checkAt){
+            checkNeighborCount = 0;
             for (uint8_t i = 0; i < NUM_NFC; i++) {
                 if (hasNeighbor[i]) {
                     Serial.println("Checking Neighbor");
