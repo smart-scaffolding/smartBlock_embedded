@@ -86,7 +86,8 @@ void loop(void) {
             success = true;
         }
     }
-    setBlockColor(ORANGE);
+    setBlockColor(GREEN);
+    while(1);
 }
 
     
