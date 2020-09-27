@@ -54,40 +54,18 @@ uint8_t thisG;
 uint8_t thisB;
 
 void loop(void) {
-    setBlockColor(ORANGE);
+    setBlockColor(GREEN);
     //////// Ask surounding blocks for this block's position ////////
 
-    char message[MAX_MESSAGE_LEN];
-    for (int i = 0; i < MAX_MESSAGE_LEN; i++) {
-        message[i] = NEW_NEIGHBOR_CHAR;
+    boolean success;
+    char apdubuffer[255] = {};
+    uint8_t apdulen = 0;
+    uint8_t ppse[] = {0x8E, 0x6F, 0x23, 0x84, 0x0E, 0x32, 0x50, 0x41, 0x59, 0x2E, 0x53, 0x59, 0x53, 0x2E, 0x44, 0x44, 0x46, 0x30, 0x31, 0xA5, 0x11, 0xBF, 0x0C, 0x0E, 0x61, 0x0C, 0x4F, 0x07, 0xA0, 0x00, 0x00, 0x00, 0x03, 0x10, 0x10, 0x87, 0x01, 0x01, 0x90, 0x00};
+    NFC.AsTarget();
+    success = NFC.getDataTarget(apdubuffer, &apdulen); //Read initial APDU
+    if (apdulen>0){
+        Serial.print("success");
     }
-
-    Serial.print("Message: ");
-    Serial.println(message);
-
-    //Try to find neighboring block
-    boolean success = false;
-    int blinkCount = 0;
-    int blinkThreshold = 1;
-    while(!success) {
-        blinkCount ++;
-        if (blinkCount <= blinkThreshold) {
-            setBlockColor(ORANGE);
-        }
-        else if (blinkCount <= blinkThreshold * 2) {
-            setBlockColor(BLACK);
-        }
-        else {
-            blinkCount = 0;
-        }
-        if (NFC.inListPassiveTarget()) {
-            uint8_t responseLength = sizeof(message);
-            NFC.inDataExchange(message,sizeof(message),message,&responseLength);
-            success = true;
-        }
-    }
-    setBlockColor(GREEN);
-    while(1);
 }
 
     
