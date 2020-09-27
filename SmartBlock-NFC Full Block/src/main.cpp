@@ -109,6 +109,7 @@ void loop(void) {
 
     bool beingMoved = false;
     while(!beingMoved){
+        // recieveAll();
         //Check if neighbor is still there
         if (checkNeighborCount == checkAt){
             checkNeighborCount = 0;
@@ -147,7 +148,7 @@ void loop(void) {
                 // TODO: Check for messages that were already recieved
                 Serial.print("Message: ");
                 Serial.println(_apdubuffer);
-                
+
                 for (uint8_t j = 0; j < _apdulen; j++){
                     if (_apdubuffer[j] != NEW_NEIGHBOR_CHAR) { //Example new neighbor message {'?','?','?','?'}
                         _newNeighbor = false;
@@ -208,6 +209,9 @@ void loop(void) {
                     }
                 }
                 Serial.println("");
+            }
+            else {
+                Serial.println("no message recieved");
             }
         }
         delay(1000);
