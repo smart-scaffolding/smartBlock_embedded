@@ -16,7 +16,7 @@ void setFaceColor(uint8_t face, uint8_t R,uint8_t G, uint8_t B);
 
 void setup(void) {
     Serial.begin(115200);
-    Serial.println("SMART BLOCK");
+    Serial.println("HOME BLOCK");
 
     NFC.begin();
 
@@ -40,7 +40,7 @@ void setup(void) {
     //Config LEDs
     FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, NUM_LEDS);  // GRB ordering is typical
 
-    Serial.println("Waiting to be added to structure ...");
+    Serial.println("Waiting for other blocks ...");
 }
 
 //Variables to holds this block's coordinates
@@ -66,6 +66,7 @@ void loop(void) {
     if (apdulen>0){
         Serial.print("success");
     }
+    delay(1000);
 }
 
     
