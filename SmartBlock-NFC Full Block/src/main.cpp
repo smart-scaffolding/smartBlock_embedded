@@ -48,7 +48,7 @@ void setFaceColor(uint8_t face, uint8_t R,uint8_t G, uint8_t B);
 
 void setup(void) {
     Serial.begin(115200);
-    Serial.println("SMART BLOCK");
+    Serial.println("HOME BLOCK");
 
     for (uint8_t i=0; i<NUM_NFC; i++) {
         NFCs[i].begin();
@@ -61,10 +61,10 @@ void setup(void) {
             // while (1); // halt
         }
 
-        // Got ok data, print it out!
-        Serial.print("Found chip PN5"); Serial.println((versiondata>>24) & 0xFF, HEX); 
-        Serial.print("Firmware ver. "); Serial.print((versiondata>>16) & 0xFF, DEC); 
-        Serial.print('.'); Serial.println((versiondata>>8) & 0xFF, DEC);
+        // // Got ok data, print it out!
+        // Serial.print("Found chip PN5"); Serial.println((versiondata>>24) & 0xFF, HEX); 
+        // Serial.print("Firmware ver. "); Serial.print((versiondata>>16) & 0xFF, DEC); 
+        // Serial.print('.'); Serial.println((versiondata>>8) & 0xFF, DEC);
 
         // configure board to read RFID tags
         NFCs[i].SAMConfig();
@@ -89,7 +89,7 @@ void setup(void) {
     }
     */
 
-    Serial.println("Waiting to be added to structure ...");
+    Serial.println("Waiting for other blocks");
 }
 
 //Variables to holds this block's coordinates
@@ -111,25 +111,28 @@ void loop(void) {
     while(!beingMoved){
         // recieveAll();
         //Check if neighbor is still there
-        if (checkNeighborCount == checkAt){
-            checkNeighborCount = 0;
-            for (uint8_t i = 0; i < NUM_NFC; i++) {
-                if (hasNeighbor[i]) {
-                    Serial.println("Checking Neighbor");
-                    if (!checkNeighbor(i)) {
-                        setBlockColor(RED);
+        // if (checkNeighborCount == checkAt){
+        //     checkNeighborCount = 0;
+        //     for (uint8_t i = 0; i < NUM_NFC; i++) {
+        //         if (hasNeighbor[i]) {
+        //             Serial.println("Checking Neighbor");
+        //             if (!checkNeighbor(i)) {
+        //                 setBlockColor(RED);
 
-                        char missingMessage[MAX_MESSAGE_LEN];
-                        sprintf(missingMessage, "%d,%d,%d,%c", neighborCoord[i][0], neighborCoord[i][1], neighborCoord[i][3], BLOCK_REMOVED_CHAR);//TODO: FINISH THIS
-                        passMessage(missingMessage, i);
-                        //TODONE: send message of missing neighbor
-                    }
-                }
-            }
-        }
-        checkNeighborCount++;
+        //                 char missingMessage[MAX_MESSAGE_LEN];
+        //                 sprintf(missingMessage, "%d,%d,%d,%c", neighborCoord[i][0], neighborCoord[i][1], neighborCoord[i][3], BLOCK_REMOVED_CHAR);//TODO: FINISH THIS
+        //                 passMessage(missingMessage, i);
+        //                 //TODONE: send message of missing neighbor
+        //             }
+        //         }
+        //     }
+        // }
+        // checkNeighborCount++;
 
         for (uint8_t i = 0; i < NUM_NFC; i++){
+
+            Serial.println("here");
+
             boolean success;
             char _apdubuffer[255] = {};
             uint8_t _apdulen = 0;
