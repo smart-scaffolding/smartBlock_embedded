@@ -57,13 +57,13 @@ void loop(void) {
     setBlockColor(ORANGE);
     //////// Ask surounding blocks for this block's position ////////
 
-    char message[MAX_MESSAGE_LEN];
-    for (int i = 0; i < MAX_MESSAGE_LEN; i++) {
-        message[i] = NEW_NEIGHBOR_CHAR;
-    }
-
+    char message[5] = {'?','?','?','?','?'};
     Serial.print("Message: ");
     Serial.println(message);
+    
+    NFC.begin();
+    NFC.SAMConfig();
+    NFC.begin();
 
     //Try to find neighboring block
     boolean success = false;
