@@ -49,32 +49,58 @@ void setFaceColor(uint8_t face, uint8_t R,uint8_t G, uint8_t B);
 void setup(void) {
     Serial.begin(115200);
     Serial.println("HOME BLOCK");
-
-    for (uint8_t i=0; i<NUM_NFC; i++) {
-        NFCs[i].begin();
-
-        uint32_t versiondata = NFCs[i].getFirmwareVersion();
-        if (! versiondata) {
-            char print[34]; //buffer to hold message
-            sprintf(print, "Didn't find PN53x board number %d\n", i);
-            Serial.print(print);
-            // while (1); // halt
-        }
-
-        // // Got ok data, print it out!
-        // Serial.print("Found chip PN5"); Serial.println((versiondata>>24) & 0xFF, HEX); 
-        // Serial.print("Firmware ver. "); Serial.print((versiondata>>16) & 0xFF, DEC); 
-        // Serial.print('.'); Serial.println((versiondata>>8) & 0xFF, DEC);
-
-        // configure board to read RFID tags
-        NFCs[i].SAMConfig();
-        NFCs[i].begin();
-        delay(1000);
-    }
-
+    
     //Config LEDs
     FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, NUM_LEDS);  // GRB ordering is typical
     setBlockColor(HOME_R,HOME_G,HOME_B); //make block green
+
+    // for (uint8_t i=0; i<NUM_NFC; i++) {
+    //     Serial.println("Doing NFC Initialization");
+    //     NFCs[i].begin();
+    //     Serial.print("NFC Begun");
+
+    //     uint32_t versiondata = NFCs[i].getFirmwareVersion();
+    //     if (! versiondata) {
+    //         char print[34]; //buffer to hold message
+    //         sprintf(print, "Didn't find PN53x board number %d\n", i);
+    //         Serial.print(print);
+    //         // while (1); // halt
+    //     }
+
+    //     // // Got ok data, print it out!
+    //     Serial.print("Found chip PN5"); Serial.println((versiondata>>24) & 0xFF, HEX); 
+    //     Serial.print("Firmware ver. "); Serial.print((versiondata>>16) & 0xFF, DEC); 
+    //     Serial.print('.'); Serial.println((versiondata>>8) & 0xFF, DEC);
+
+    //     // configure board to read RFID tags
+    //     NFCs[i].SAMConfig();
+    //     NFCs[i].begin();
+    //     delay(1000);
+    // }
+    
+    NFCs[1].begin();
+    Serial.print("NFC Begun");
+
+    uint32_t versiondata = NFCs[1].getFirmwareVersion();
+    if (! versiondata) {
+        char print[34]; //buffer to hold message
+        sprintf(print, "Didn't find PN53x board number %d\n", 1);
+        Serial.print(print);
+        // while (1); // halt
+    }
+
+    // // Got ok data, print it out!
+    Serial.print("Found chip PN5"); Serial.println((versiondata>>24) & 0xFF, HEX); 
+    Serial.print("Firmware ver. "); Serial.print((versiondata>>16) & 0xFF, DEC); 
+    Serial.print('.'); Serial.println((versiondata>>8) & 0xFF, DEC);
+
+    // configure board to read RFID tags
+    NFCs[1].SAMConfig();
+    NFCs[1].begin();
+    delay(1000);
+
+    Serial.print("serial configured");
+
 
     /*
     // Testing purposes only
@@ -103,6 +129,7 @@ uint8_t thisG = HOME_G;
 uint8_t thisB = HOME_B;
 
 void loop(void) {
+    Serial.print("in main loop");
     recieveAll();
     uint8_t checkNeighborCount = 0;
     uint8_t checkAt = 10;
