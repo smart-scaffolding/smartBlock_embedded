@@ -16,7 +16,7 @@ void setFaceColor(uint8_t face, uint8_t R,uint8_t G, uint8_t B);
 
 void setup(void) {
     Serial.begin(115200);
-    Serial.println("SMART BLOCK");
+    Serial.println("HOME BLOCK");
 
     NFC.begin();
 
@@ -56,8 +56,6 @@ uint8_t thisB;
 void loop(void) {
     setBlockColor(GREEN);
     //////// Ask surounding blocks for this block's position ////////
-    NFC.begin();
-    NFC.SAMConfig();
 
     boolean success;
     char apdubuffer[255] = {};
@@ -69,6 +67,7 @@ void loop(void) {
         if (apdulen>0){
             Serial.print("success");
         }
+        delay(1000);
     }
 }
 
