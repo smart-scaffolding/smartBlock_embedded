@@ -56,15 +56,19 @@ uint8_t thisB;
 void loop(void) {
     setBlockColor(GREEN);
     //////// Ask surounding blocks for this block's position ////////
+    NFC.begin();
+    NFC.SAMConfig();
 
     boolean success;
     char apdubuffer[255] = {};
     uint8_t apdulen = 0;
     uint8_t ppse[] = {0x8E, 0x6F, 0x23, 0x84, 0x0E, 0x32, 0x50, 0x41, 0x59, 0x2E, 0x53, 0x59, 0x53, 0x2E, 0x44, 0x44, 0x46, 0x30, 0x31, 0xA5, 0x11, 0xBF, 0x0C, 0x0E, 0x61, 0x0C, 0x4F, 0x07, 0xA0, 0x00, 0x00, 0x00, 0x03, 0x10, 0x10, 0x87, 0x01, 0x01, 0x90, 0x00};
-    NFC.AsTarget();
-    success = NFC.getDataTarget(apdubuffer, &apdulen); //Read initial APDU
-    if (apdulen>0){
-        Serial.print("success");
+    while (apdulen == 0) {
+        NFC.AsTarget();
+        success = NFC.getDataTarget(apdubuffer, &apdulen); //Read initial APDU
+        if (apdulen>0){
+            Serial.print("success");
+        }
     }
 }
 
