@@ -145,6 +145,9 @@ void loop(void) {
 
             if (_apdulen>0){
                 // TODO: Check for messages that were already recieved
+                Serial.print("Message: ");
+                Serial.println(_apdubuffer);
+                
                 for (uint8_t j = 0; j < _apdulen; j++){
                     if (_apdubuffer[j] != NEW_NEIGHBOR_CHAR) { //Example new neighbor message {'?','?','?','?'}
                         _newNeighbor = false;
