@@ -144,19 +144,10 @@ void loop(void) {
             //TODO add all sorounding blocks as neighbors
         }
     }
-
-    Serial.println("ASKING FOR MY LOCATION");
-
-    // Recieve this blocks position from the indentified neighbor
-    recieveAll();
-    
-    //Buffers to hold each coordinat string
-    char coord_buf[COORDINATE_LEN + 1];
-
+        //Recieve this block's color based on the homeblock's color
     success = false;
     char apdubuffer[255] = {};
-    uint8_t apdulen = 0;
-    uint8_t ppse[] = {0x8E, 0x6F, 0x23, 0x84, 0x0E, 0x32, 0x50, 0x41, 0x59, 0x2E, 0x53, 0x59, 0x53, 0x2E, 0x44, 0x44, 0x46, 0x30, 0x31, 0xA5, 0x11, 0xBF, 0x0C, 0x0E, 0x61, 0x0C, 0x4F, 0x07, 0xA0, 0x00, 0x00, 0x00, 0x03, 0x10, 0x10, 0x87, 0x01, 0x01, 0x90, 0x00};
+    apdulen = 0;
     delay(1000);
     while (apdulen == 0) {
         NFCs[faceWithNeighbor].AsTarget();
@@ -164,23 +155,24 @@ void loop(void) {
         if (apdulen>0){
             uint8_t j = 0;
             uint8_t k = 0;
+
             for (uint8_t i = 0; i < apdulen; i++){
                 char digit = apdubuffer[i];
-                //Put recieved coordinate into char buffer
+                //Put recieved digit into char buffer
                 if (digit != ',') {
                     coord_buf[j] = digit;
                     j++;
                 }
                 else {
                     coord_buf[j] = '\n'; //null terminator for atoi()
-                    //assign value to appropriate coordinate
+                    //assign value to appropriate color variable
                     switch (k) {
                         case 0:
-                            thisX = atoi(coord_buf);
+                            thisR = atoi(coord_buf);
                         case 1:
-                            thisY = atoi(coord_buf);
+                            thisG = atoi(coord_buf);
                         case 2:
-                            thisZ = atoi(coord_buf);
+                            thisB = atoi(coord_buf);
                         default:
                             digit = digit; //Do nothing
                     }
@@ -188,127 +180,7 @@ void loop(void) {
                     k++;
                 }
             }
-            char buffer[MAX_MESSAGE_LEN + 12];
-            sprintf(buffer, "X: %d Y: %d Z: %d\n", thisX, thisY, thisZ);
-            Serial.println(buffer);
-        }
-        delay(1000);
-    }
-
-    // Recieve this block's orientation from the indetified neighbor
-    recieveAll();
-
-    success = false;
-    char apdubufer[255] = {};
-    apdulen = 0;
-    delay(1000);
-    while (apdulen == 0) {
-        NFCs[faceWithNeighbor].AsTarget();
-        success = NFCs[faceWithNeighbor].getDataTarget(apdubufer, &apdulen); //Read initial APDU
-        if (apdulen>0 && faceWithNeighbor < 4){ //orientation cannot be determined for faces added in Z direction
-            //set orientation of face with neighbor
-            increaseAxis[faceWithNeighbor] = apdubufer[0]; // Can be 0,1,or 2 to represent X,Y,or Z
-            increaseSign[faceWithNeighbor] = apdubufer[1]; //-1 or 1 to represent axis direction
-            //if neighboring face is in + direction the face with the neighbor will be in the - direction
-
-            //calculate and store coordinate of neighbor
-            hasNeighbor[faceWithNeighbor] = true;
-
-            uint8_t increase[3] = {0,0,0}; 
-            increase[increaseAxis[faceWithNeighbor]] = increaseSign[faceWithNeighbor]; //choose which axis will increase based on which face has neighbor
-            neighborCoord[faceWithNeighbor][0] = thisX+increase[0]; //calulate neighbor's coordinates
-            neighborCoord[faceWithNeighbor][1] = thisY+increase[1];
-            neighborCoord[faceWithNeighbor][2] = thisZ+increase[2];
-
-            //Set orientation of oposite face
-            if (faceWithNeighbor % 2 == 0) {
-                increaseAxis[faceWithNeighbor+1] = apdubufer[0];
-                increaseSign[faceWithNeighbor+1] = apdubufer[1];
-            }
-            else {
-                increaseAxis[faceWithNeighbor-1] = apdubufer[0];
-                increaseSign[faceWithNeighbor-1] = -1*apdubufer[1];
-            }
-            //Set orintation of perpendicular faces
-            uint8_t dim;
-            if (apdubufer[0] == 0) { dim = 1; }
-            else { dim = 0; }
-
-            if (faceWithNeighbor <= 1) { //set for Y0,Y1
-                increaseAxis[2] = dim;
-                increaseAxis[3] = dim;
-            }
-            else if (faceWithNeighbor <= 3) { //set for X0,X1
-                increaseAxis[0] = dim;
-                increaseAxis[1] = dim;
-            }
-            //Set increase direction (-1 or 1) for oposite face
-
-            if (apdubufer[0] == 0) { // if face with neighbor is on X axis
-                // Determine Y0 and Y1 direction from X0 and X1 direction
-                if (faceWithNeighbor <= 1) {
-                    increaseSign[2] = increaseSign[0];
-                    increaseSign[3] = increaseSign[1];
-                }
-                // Determine X0 and X1 direction from Y0 and Y1 direction
-                else if (faceWithNeighbor <= 3) {
-                    increaseSign[0] = increaseSign[3];
-                    increaseSign[1] = increaseSign[2];
-                }
-            }
-            else if (apdubufer[0] == 1) { // if face with neighbor is on Y axis
-                // Determine X0 and X1 direction from X0 direction
-                if (faceWithNeighbor <= 1) {
-                    increaseSign[2] = increaseSign[1];
-                    increaseSign[3] = increaseSign[0];
-                }
-                else if (faceWithNeighbor <= 3) {
-                    // Determine X0 and X1 direction from Y0 and Y1 direction
-                    increaseSign[0] = increaseSign[2];
-                    increaseSign[1] = increaseSign[3];
-                }
-            }
-        }
-        delay(1000);
-
-        //Recieve this block's color based on the homeblock's color
-        success = false;
-        char apdubuffer[255] = {};
-        apdulen = 0;
-        delay(1000);
-        while (apdulen == 0) {
-            NFCs[faceWithNeighbor].AsTarget();
-            success = NFCs[faceWithNeighbor].getDataTarget(apdubuffer, &apdulen); //Read initial APDU
-            if (apdulen>0){
-                uint8_t j = 0;
-                uint8_t k = 0;
-
-                for (uint8_t i = 0; i < apdulen; i++){
-                    char digit = apdubuffer[i];
-                    //Put recieved digit into char buffer
-                    if (digit != ',') {
-                        coord_buf[j] = digit;
-                        j++;
-                    }
-                    else {
-                        coord_buf[j] = '\n'; //null terminator for atoi()
-                        //assign value to appropriate color variable
-                        switch (k) {
-                            case 0:
-                                thisR = atoi(coord_buf);
-                            case 1:
-                                thisG = atoi(coord_buf);
-                            case 2:
-                                thisB = atoi(coord_buf);
-                            default:
-                                digit = digit; //Do nothing
-                        }
-                        j=0; 
-                        k++;
-                    }
-                }
-                setBlockColor(thisR,thisG,thisB);
-            }
+            setBlockColor(thisR,thisG,thisB);
         }
     }
 

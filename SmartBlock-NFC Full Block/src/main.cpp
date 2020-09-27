@@ -270,45 +270,44 @@ void loop(void) {
             }
         }
         delay(1000);
+    }
 
-        //Recieve this block's color based on the homeblock's color
-        success = false;
-        char apdubuffer[255] = {};
-        apdulen = 0;
-        delay(1000);
-        while (apdulen == 0) {
-            NFCs[faceWithNeighbor].AsTarget();
-            success = NFCs[faceWithNeighbor].getDataTarget(apdubuffer, &apdulen); //Read initial APDU
-            if (apdulen>0){
-                uint8_t j = 0;
-                uint8_t k = 0;
+    //Recieve this block's color based on the homeblock's color
+    success = false;
+    apdulen = 0;
+    delay(1000);
+    while (apdulen == 0) {
+        NFCs[faceWithNeighbor].AsTarget();
+        success = NFCs[faceWithNeighbor].getDataTarget(apdubuffer, &apdulen); //Read initial APDU
+        if (apdulen>0){
+            uint8_t j = 0;
+            uint8_t k = 0;
 
-                for (uint8_t i = 0; i < apdulen; i++){
-                    char digit = apdubuffer[i];
-                    //Put recieved digit into char buffer
-                    if (digit != ',') {
-                        coord_buf[j] = digit;
-                        j++;
-                    }
-                    else {
-                        coord_buf[j] = '\n'; //null terminator for atoi()
-                        //assign value to appropriate color variable
-                        switch (k) {
-                            case 0:
-                                thisR = atoi(coord_buf);
-                            case 1:
-                                thisG = atoi(coord_buf);
-                            case 2:
-                                thisB = atoi(coord_buf);
-                            default:
-                                digit = digit; //Do nothing
-                        }
-                        j=0; 
-                        k++;
-                    }
+            for (uint8_t i = 0; i < apdulen; i++){
+                char digit = apdubuffer[i];
+                //Put recieved digit into char buffer
+                if (digit != ',') {
+                    coord_buf[j] = digit;
+                    j++;
                 }
-                setBlockColor(thisR,thisG,thisB);
+                else {
+                    coord_buf[j] = '\n'; //null terminator for atoi()
+                    //assign value to appropriate color variable
+                    switch (k) {
+                        case 0:
+                            thisR = atoi(coord_buf);
+                        case 1:
+                            thisG = atoi(coord_buf);
+                        case 2:
+                            thisB = atoi(coord_buf);
+                        default:
+                            digit = digit; //Do nothing
+                    }
+                    j=0; 
+                    k++;
+                }
             }
+            setBlockColor(thisR,thisG,thisB);
         }
     }
 
