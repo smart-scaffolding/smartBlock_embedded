@@ -112,6 +112,9 @@ void loop(void) {
         message[i] = NEW_NEIGHBOR_CHAR;
     }
 
+    Serial.print("Message: ");
+    Serial.println(message);
+
     //Try to find neighboring block
     boolean success = false;
     uint8_t faceWithNeighbor;
