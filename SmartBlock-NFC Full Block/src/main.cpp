@@ -21,6 +21,8 @@ CRGB leds[NUM_LEDS];
 void setBlockColor(uint8_t R,uint8_t G, uint8_t B);
 void setFaceColor(uint8_t face, uint8_t R,uint8_t G, uint8_t B);
 
+uint8_t neighborMoving = Y0_SS;
+
 void setup(void) {
     Serial.begin(115200);
     Serial.println("HOME BLOCK");
@@ -82,7 +84,7 @@ void loop(void) {
             else if (hasNeighbor[i]) {
                 Serial.print("missing count++");
                 missingCount[i]++;
-                if (missingCount[i] > 3) {
+                if (missingCount[i] > 3 && i != neighborMoving) {
                     Serial.print("block missing");
                     while(1) {
                         setBlockColor(RED);
