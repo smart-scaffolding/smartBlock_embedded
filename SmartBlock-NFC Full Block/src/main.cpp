@@ -75,6 +75,7 @@ void loop(void) {
             success = NFCs[i].getDataTarget(apdubuffer, &apdulen); //Read initial APDU
             if (apdulen>0){
                 Serial.print("success");
+                hasNeighbor[i] = true;
             }
             else if (hasNeighbor[i]) {
                 while(1) {
