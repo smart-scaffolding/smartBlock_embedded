@@ -1,5 +1,5 @@
-#define NUM_NFC 6 //Number of PN532 chips
-// #define NUM_NFC 1 //For testing purposes only
+// #define NUM_NFC 6 //Number of PN532 chips
+#define NUM_NFC 2 //For testing purposes only
 
 
 //Pins

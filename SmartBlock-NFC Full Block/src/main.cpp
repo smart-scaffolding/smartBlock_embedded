@@ -6,10 +6,10 @@
 #include <FastLED.h>
 
 //PN532 (SPI)
-Adafruit_PN532 X0(X0_SS);
 Adafruit_PN532 X1(X1_SS);
+Adafruit_PN532 Y0(Y0_SS);
 
-Adafruit_PN532 NFCs[NUM_NFC] = {X0, X1};
+Adafruit_PN532 NFCs[NUM_NFC] = {X1, Y0};
 
 //Define LEDs
 CRGB leds[NUM_LEDS];
@@ -41,6 +41,7 @@ void setup(void) {
         // configure board to read RFID tags
         NFCs[i].SAMConfig();
         NFCs[i].begin();
+        delay(1000);
     }
     //Config LEDs
     FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, NUM_LEDS);  // GRB ordering is typical
