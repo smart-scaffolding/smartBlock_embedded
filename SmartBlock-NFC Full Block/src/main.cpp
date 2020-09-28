@@ -89,8 +89,9 @@ void loop(void) {
         delay(1000);
     }
     while(1) {
+        char _message[5] = {'?','?','?','?','?'};
         if (NFC.inListPassiveTarget()) {
-            NFC.inDataExchange(message,sizeof(message),message,sizeof(message));
+            NFC.inDataExchange(_message,sizeof(_message),_message,sizeof(_message));
         }
     }
 }
