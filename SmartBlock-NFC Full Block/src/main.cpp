@@ -69,10 +69,12 @@ void loop(void) {
     boolean success = false;
     int blinkCount = 0;
     int blinkThreshold = 1;
+    uin
     while(!success) {
         if (NFC.inListPassiveTarget()) {
+            NFC.inDataExchange(message,sizeof(message),message,sizeof(message));
+            success = true;
             setBlockColor(GREEN);
-            while(1);
         }
 
         blinkCount ++;
@@ -86,6 +88,11 @@ void loop(void) {
             blinkCount = 0;
         }
         delay(1000);
+    }
+    while(1) {
+        if (NFC.inListPassiveTarget()) {
+            NFC.inDataExchange(message,sizeof(message),message,sizeof(message));
+        }
     }
 }
 
