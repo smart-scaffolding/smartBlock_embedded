@@ -13,6 +13,8 @@ Adafruit_PN532 NFCs[NUM_NFC] = {Y0, X1};
 
 bool hasNeighbor[NUM_NFC] = {false, false};
 
+uint16_t missingCount[NUM_NFC] = {0,0};
+
 //Define LEDs
 CRGB leds[NUM_LEDS];
 
@@ -78,11 +80,16 @@ void loop(void) {
                 hasNeighbor[i] = true;
             }
             else if (hasNeighbor[i]) {
-                while(1) {
-                    setBlockColor(RED);
-                    delay(1000);
-                    setBlockColor(BLACK);
-                    delay(1000);
+                Serial.print("missing count++");
+                missingCount[i]++;
+                if (missingCount[i] > 3) {
+                    Serial.print("block missing");
+                    while(1) {
+                        setBlockColor(RED);
+                        delay(1000);
+                        setBlockColor(BLACK);
+                        delay(1000);
+                    }
                 }
             }
             delay(1000);
