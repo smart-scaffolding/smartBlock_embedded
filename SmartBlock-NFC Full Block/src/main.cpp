@@ -11,6 +11,8 @@ Adafruit_PN532 Y0(Y0_SS);
 
 Adafruit_PN532 NFCs[NUM_NFC] = {Y0, X1};
 
+bool hasNeighbor[NUM_NFC] = {false, false};
+
 //Define LEDs
 CRGB leds[NUM_LEDS];
 
@@ -73,6 +75,14 @@ void loop(void) {
             success = NFCs[i].getDataTarget(apdubuffer, &apdulen); //Read initial APDU
             if (apdulen>0){
                 Serial.print("success");
+            }
+            else if (hasNeighbor[i]) {
+                while(1) {
+                    setBlockColor(RED);
+                    delay(1000);
+                    setBlockColor(BLACK);
+                    delay(1000);
+                }
             }
             delay(1000);
         }
