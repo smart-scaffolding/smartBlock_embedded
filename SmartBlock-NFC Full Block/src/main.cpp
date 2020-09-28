@@ -6,7 +6,10 @@
 #include <FastLED.h>
 
 //PN532 (SPI)
-Adafruit_PN532 NFC(X1_SS);
+Adafruit_PN532 X0(X0_SS);
+Adafruit_PN532 X1(X1_SS);
+
+Adafruit_PN532 NFCs[NUM_NFC] = {X0, X1};
 
 //Define LEDs
 CRGB leds[NUM_LEDS];
@@ -18,25 +21,27 @@ void setup(void) {
     Serial.begin(115200);
     Serial.println("HOME BLOCK");
 
-    NFC.begin();
+    for (int i=0; i<NUM_NFC; i++) {
 
-    uint32_t versiondata = NFC.getFirmwareVersion();
-    if (! versiondata) {
-        char print[34]; //buffer to hold message
-        sprintf(print, "Didn't find PN53x board");
-        Serial.print(print);
-        //while (1); // halt
+        NFCs[i].begin();
+
+        uint32_t versiondata = NFCs[i].getFirmwareVersion();
+        if (! versiondata) {
+            char print[34]; //buffer to hold message
+            sprintf(print, "Didn't find PN53x board");
+            Serial.print(print);
+            //while (1); // halt
+        }
+
+        // Got ok data, print it out!
+        Serial.print("Found chip PN5"); Serial.println((versiondata>>24) & 0xFF, HEX); 
+        Serial.print("Firmware ver. "); Serial.print((versiondata>>16) & 0xFF, DEC); 
+        Serial.print('.'); Serial.println((versiondata>>8) & 0xFF, DEC);
+
+        // configure board to read RFID tags
+        NFCs[i].SAMConfig();
+        NFCs[i].begin();
     }
-
-    // Got ok data, print it out!
-    Serial.print("Found chip PN5"); Serial.println((versiondata>>24) & 0xFF, HEX); 
-    Serial.print("Firmware ver. "); Serial.print((versiondata>>16) & 0xFF, DEC); 
-    Serial.print('.'); Serial.println((versiondata>>8) & 0xFF, DEC);
-
-    // configure board to read RFID tags
-    NFC.SAMConfig();
-    NFC.begin();
-
     //Config LEDs
     FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, NUM_LEDS);  // GRB ordering is typical
 
@@ -62,14 +67,15 @@ void loop(void) {
     uint8_t apdulen = 0;
     uint8_t ppse[] = {0x8E, 0x6F, 0x23, 0x84, 0x0E, 0x32, 0x50, 0x41, 0x59, 0x2E, 0x53, 0x59, 0x53, 0x2E, 0x44, 0x44, 0x46, 0x30, 0x31, 0xA5, 0x11, 0xBF, 0x0C, 0x0E, 0x61, 0x0C, 0x4F, 0x07, 0xA0, 0x00, 0x00, 0x00, 0x03, 0x10, 0x10, 0x87, 0x01, 0x01, 0x90, 0x00};
     while (apdulen == 0) {
-        NFC.AsTarget();
-        success = NFC.getDataTarget(apdubuffer, &apdulen); //Read initial APDU
-        if (apdulen>0){
-            Serial.print("success");
+        for (int i=0; i<NUM_NFC; i++) {
+            NFCs[i].AsTarget();
+            success = NFCs[i].getDataTarget(apdubuffer, &apdulen); //Read initial APDU
+            if (apdulen>0){
+                Serial.print("success");
+            }
+            delay(1000);
         }
-        delay(1000);
     }
-    delay(1000);
 }
 
     
