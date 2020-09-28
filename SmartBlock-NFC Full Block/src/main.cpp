@@ -21,7 +21,7 @@ CRGB leds[NUM_LEDS];
 void setBlockColor(uint8_t R,uint8_t G, uint8_t B);
 void setFaceColor(uint8_t face, uint8_t R,uint8_t G, uint8_t B);
 
-uint8_t neighborMoving = Y0_SS;
+uint8_t neighborMoving = X1_SS;
 
 void setup(void) {
     Serial.begin(115200);
