@@ -73,7 +73,6 @@ void loop(void) {
         if (NFC.inListPassiveTarget()) {
             NFC.inDataExchange(message,sizeof(message),message,sizeof(message));
             success = true;
-            setBlockColor(GREEN);
         }
 
         blinkCount ++;
@@ -88,15 +87,20 @@ void loop(void) {
         }
         delay(1000);
     }
-    unsigned long time0;
+    setBlockColor(GREEN);
+    Serial.println("Moviing to while loop");
+    
+    unsigned long time0 = millis();  
     while(1) {
         char _message[5] = {'?','?','?','?','?'};
         if (NFC.inListPassiveTarget()) {
             NFC.inDataExchange(_message,sizeof(_message),_message,sizeof(_message));
-            time0 = micros();
+            time0 = millis();
         }
-        if (micros() - time0 > 3000) {
+        if (millis() - time0 > 3500) {
             while(1) {
+                Serial.println("eof");
+                delay(1000);
                 blinkCount ++;
                 if (blinkCount <= blinkThreshold) {
                     setBlockColor(ORANGE);
