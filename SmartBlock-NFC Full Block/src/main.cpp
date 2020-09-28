@@ -96,7 +96,8 @@ void loop(void) {
         if (NFC.inListPassiveTarget()) {
             NFC.inDataExchange(_message,sizeof(_message),_message,sizeof(_message));
         }
-        if (millis() - time0 > 5000) {
+        //CHANGE TIME BELLOW
+        if (millis() - time0 > 10000) {
             while(1) {
                 Serial.println("eof");
                 setBlockColor(BLACK);
