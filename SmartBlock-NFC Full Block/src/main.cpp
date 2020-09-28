@@ -47,6 +47,7 @@ void setup(void) {
     }
     //Config LEDs
     FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, NUM_LEDS);  // GRB ordering is typical
+    setBlockColor(GREEN);
 
     Serial.println("Waiting for other blocks ...");
 }
@@ -62,7 +63,6 @@ uint8_t thisG;
 uint8_t thisB;
 
 void loop(void) {
-    setBlockColor(GREEN);
     //////// Ask surounding blocks for this block's position ////////
 
     boolean success;
