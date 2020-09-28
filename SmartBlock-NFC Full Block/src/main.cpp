@@ -88,15 +88,29 @@ void loop(void) {
         }
         delay(1000);
     }
+    unsigned long time0;
     while(1) {
         char _message[5] = {'?','?','?','?','?'};
         if (NFC.inListPassiveTarget()) {
             NFC.inDataExchange(_message,sizeof(_message),_message,sizeof(_message));
+            time0 = micros();
+        }
+        if (micros() - time0 > 3000) {
+            while(1) {
+                blinkCount ++;
+                if (blinkCount <= blinkThreshold) {
+                    setBlockColor(ORANGE);
+                }
+                else if (blinkCount <= blinkThreshold * 2) {
+                    setBlockColor(BLACK);
+                }
+                else {
+                    blinkCount = 0;
+                }
+            }
         }
     }
 }
-
-    
 
 //LED Functions
 void setBlockColor(uint8_t R,uint8_t G, uint8_t B){
