@@ -9,7 +9,7 @@
 Adafruit_PN532 X1(X1_SS);
 Adafruit_PN532 Y0(Y0_SS);
 
-Adafruit_PN532 NFCs[NUM_NFC] = {X1, Y0};
+Adafruit_PN532 NFCs[NUM_NFC] = {Y0, X1};
 
 //Define LEDs
 CRGB leds[NUM_LEDS];
