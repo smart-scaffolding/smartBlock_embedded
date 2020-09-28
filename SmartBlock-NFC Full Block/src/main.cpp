@@ -69,7 +69,6 @@ void loop(void) {
     boolean success = false;
     int blinkCount = 0;
     int blinkThreshold = 1;
-    uin
     while(!success) {
         if (NFC.inListPassiveTarget()) {
             NFC.inDataExchange(message,sizeof(message),message,sizeof(message));
